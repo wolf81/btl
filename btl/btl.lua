@@ -1,8 +1,8 @@
-local _PATH = (...):match("(.-)[^%.]+$")
+local _PATH = (...):match('(.-)[^%.]+$' or '')
 local xml_parser = require(_PATH .. 'xml_parser')
-local utils = require(_PATH .. "utils")
-local Animation = require(_PATH .. "animation")
-local Tile = require(_PATH .. "tile")
+local utils = require(_PATH .. 'utils')
+local Animation = require(_PATH .. 'animation')
+local Tile = require(_PATH .. 'tile')
 
 local mfloor = math.floor
 
@@ -16,7 +16,7 @@ local function parseTile(node)
 
     for _, child_node in ipairs(node.children) do
         if child_node.name == 'animation' then
-            animation = Animation(child_node)
+            animation = Animation.new(child_node)
         end
     end
 
@@ -251,7 +251,7 @@ M.load = function(tmx_path)
     map.draw = function(camera)
         -- TODO: use sprite batches
 
-        if camera ~= nil then            
+        if camera ~= nil then
             -- convert camera position to coordinates, to compare against chunk coordinates
             local cam_x = camera.x / map.tilewidth
             local cam_y = camera.y / map.tileheight
@@ -292,9 +292,9 @@ M.load = function(tmx_path)
             local gid = tileset.firstgid
 
             for tile_id, animation in pairs(tileset.animations) do
-                animation:update(dt)
+                Animation.update(animation, dt)
 
-                local frame = animation:getCurrentFrame()
+                local frame = Animation.getCurrentFrame(animation)
                 local image = tile_images[gid + frame.tile_id]
                 tiles[gid + tile_id] = Tile(image)
             end

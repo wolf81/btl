@@ -1,5 +1,4 @@
-local Animation = {}
-Animation.__index = Animation
+local M = {}
 
 local function getFrames(node)
 	local frames = {}
@@ -16,28 +15,25 @@ local function getFrames(node)
     return frames
 end
 
-function Animation:init(node)
-	return setmetatable({
+function M.new(node)
+    return {
 		time = 0,
 		frames = getFrames(node),
-		frame_idx = 1,
-		-- TODO: could have a 'dirty' flag, to prevent updating tiles if frame idx was unchanged
-	}, Animation)
+		frame_idx = 1
+    }
 end
 
-function Animation:update(dt)
-    self.time = self.time + dt
-    local frame = self.frames[self.frame_idx]
-    if self.time > frame.duration then
-        self.time = self.time - frame.duration
-        self.frame_idx = (self.frame_idx % #self.frames) + 1
+function M.update(animation, dt)
+    animation.time = animation.time + dt
+    local frame = animation.frames[animation.frame_idx]
+    if animation.time > frame.duration then
+        animation.time = animation.time - frame.duration
+        animation.frame_idx = (animation.frame_idx % #animation.frames) + 1
     end
 end
 
-function Animation:getCurrentFrame()
-	return self.frames[self.frame_idx]
+function M.getCurrentFrame(animation)
+	return animation.frames[animation.frame_idx]
 end
 
-return setmetatable(Animation, {
-	__call = Animation.init,
-})
+return M
