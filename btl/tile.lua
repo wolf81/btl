@@ -2,7 +2,7 @@ local Tile = {}
 Tile.__index = Tile
 
 function Tile:init(image)
-	return setmetatable({ 
+	return setmetatable({
 		image = image,
 	}, Tile)
 end
