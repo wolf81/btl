@@ -5,30 +5,14 @@
 
 local M = {}
 
-local function toXmlString(value)
-    value = string.gsub(value, '&', '&amp;')      -- '&'  → "&amp;"
-    value = string.gsub(value, '<', '&lt;')       -- '<'  → "&lt;"
-    value = string.gsub(value, '>', '&gt;')       -- '>'  → "&gt;"
-    value = string.gsub(value, '"', '&quot;')     -- '"'  → "&quot;"
-    --value = string.gsub (value, '\'', "&apos;") -- '\'' → "&apos;"
-    -- replace non printable char                 --      → "&#xD;"
-    value = string.gsub(value, '([^%w%&%;%p%\t% ])',
-        function (c) 
-            return string.format('&#x%X;', string.byte(c)) 
-            --return string.format("&#x%02X;", string.byte(c)) 
-            --return string.format("&#%02d;", string.byte(c)) 
-        end)
-    return value
-end
-
 local function fromXmlString(value)
     value = string.gsub(value, '&#x([%x]+)%;',
-        function(h) 
-            return string.char(tonumber(h, 16)) 
+        function(h)
+            return string.char(tonumber(h, 16))
         end)
     value = string.gsub(value, '&#([0-9]+)%;',
-        function(h) 
-            return string.char(tonumber(h, 10)) 
+        function(h)
+            return string.char(tonumber(h, 10))
         end)
     value = string.gsub(value, '&quot;', '"')
     value = string.gsub(value, '&apos;', '\'')
@@ -37,7 +21,7 @@ local function fromXmlString(value)
     value = string.gsub(value, '&amp;',  '&')
     return value
 end
-   
+
 local function parseArgs(s)
     local arg = {}
     string.gsub(s, '(%w+)=(["\'])(.-)%2', function (w, _, a)
@@ -61,11 +45,11 @@ M.parseXmlString = function(xml_string)
         ni,j,c,label,xarg, empty = string.find(xml_string, '<(%/?)([%w:]+)(.-)(%/?)>', i)
         if not ni then break end
         local text = string.sub(xml_string, i, ni - 1)
-        
+
         if not string.find(text, '^%s*$') then
             top.value = (top.value or '') .. fromXmlString(text)
         end
-        
+
         if empty == '/' then  -- empty element tag
             table.insert(top.children, {
                 name = label,
@@ -75,8 +59,8 @@ M.parseXmlString = function(xml_string)
             })
         elseif c == '' then   -- start tag
             top = {
-                name = label, 
-                value = nil, 
+                name = label,
+                value = nil,
                 attributes = parseArgs(xarg), 
                 children = {},
             }
@@ -111,13 +95,13 @@ M.parseXmlString = function(xml_string)
 end
 
 function M.parseXmlFile(xml_path)
-    local file, err = io.open(xml_path, 'r');
-    if (not err) then
-        local xml_string = file:read('*a') -- read file content
-        io.close(file)
+    local success, file = pcall(io.open, xml_path, 'r')
+    if success and file then
+        local xml_string = file:read('*a')
+        file:close()
         return M.parseXmlString(xml_string), nil
     else
-        return nil, err
+        error('XmlParser: could not open file ' .. xml_path)
     end
 end
 

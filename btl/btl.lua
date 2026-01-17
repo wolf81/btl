@@ -1,31 +1,17 @@
-local _PATH = (...):match("(.-)[^%.]+$") 
-local Tile = require(_PATH .. "tile")
+local _PATH = (...):match("(.-)[^%.]+$")
+local xml_parser = require(_PATH .. 'xml_parser')
+local utils = require(_PATH .. "util")
 local Animation = require(_PATH .. "animation")
+local Tile = require(_PATH .. "tile")
 
 local mfloor = math.floor
+
+assert(love ~= nil, "BTL requires LÖVE framework to run")
 
 local M = {}
 
 -- the image filter used for drawing tiles, configured by calling: M.setImageFilter()
 local image_filter = { 'linear', 'linear', 1 }
-
--- split a string based on a seperator character
-local function stringSplit(str, sep)
-    local results = {}
-    for v in string.gmatch(str, '[^' .. sep .. ']+') do
-        table.insert(results, v)
-    end
-    return results
-end
-
-local function hexToColor(hex)
-     _, _, a, r, g, b = hex:find('#(%x%x)(%x%x)(%x%x)(%x%x)')
-    return { tonumber(r, 16), tonumber(g, 16), tonumber(b, 16), tonumber(a, 16) }
-end
-
-local function getDirectory(file_path)
-    return file_path:match("(.*[/\\])")
-end
 
 local function parseTile(node)
     local animation = {}
@@ -45,12 +31,12 @@ end
 local function parseTileset(node, dir)
     -- in case a tileset is embedded in a tilemap, the firstgid is defined in the tileset
     -- in case a tileset is loaded from a path, the firstgid is defined in the tilemap
-    local firstgid = 0
+    local firstgid = nil
 
     local tsx_path = node.attributes['source']
     if tsx_path ~= nil then
         firstgid = tonumber(node.attributes['firstgid'])
-        node, err = XmlParser.parseXmlFile(dir .. '/' .. tsx_path)
+        node = xml_parser.parseXmlFile(dir .. tsx_path)
     else
         firstgid = tonumber(node.attributes['firstgid'])
     end
@@ -59,19 +45,15 @@ local function parseTileset(node, dir)
     for _, child_node in ipairs(node.children) do
         if child_node.name == 'image' then
             local image_node = node.children[1]
-            local image_source = image_node.attributes['source'] 
-            local image_path = string.gsub(image_source, '%.%.%/', '')
-            image = love.image.newImageData(image_path)
+            local image_source = image_node.attributes['source']
+            local rel_path = utils.getNormalizedPath(dir, image_source)
+            image = love.image.newImageData(rel_path)
         elseif child_node.name == 'tile' then
             local tile = parseTile(child_node)
             animations[tile.id] = tile.animation
         end
     end
     assert(image ~= nil, 'no tileset image found')
-
-    -- convert image source path to image data
-    -- TODO: this relative path is likely to fail in many situations, but
-    -- works fine here as we look for gfx directory in root
 
     return {
         name        = node.attributes['name'],
@@ -95,7 +77,7 @@ local function parseChunk(node)
     }
 
     -- convert tile ids from CSV to a Lua table, based on chunk width & height
-    local tile_ids = stringSplit(node.value, ',')
+    local tile_ids = utils.split(node.value, ',')
     for y = 1, chunk.height do
         chunk.tile_ids[y] = {}
         for x = 1, chunk.width do
@@ -144,7 +126,7 @@ local function parseProperties(node)
         if type == 'bool' then
             properties[name] = (value == 'true') and true or false
         elseif type == 'color' then
-            properties[name] = hexToColor(value)
+            properties[name] = utils.hexToColor(value)
         elseif type == 'float' or type == 'int' or type == 'object' then
             properties[name] = tonumber(value)
         elseif type == 'string' or type == 'file' then
@@ -177,7 +159,7 @@ local function parseObject(node)
         type        = node.attributes['type'],
         name        = node.attributes['name'],
         properties  = properties,
-    }    
+    }
 end
 
 local function parseObjectGroup(node)
@@ -185,7 +167,7 @@ local function parseObjectGroup(node)
 
     for _, child_node in ipairs(node.children) do
         table.insert(object_group, parseObject(child_node))
-    end 
+    end
 
     return object_group
 end
@@ -211,8 +193,8 @@ end
 -- load a TMX file based on the relative path inside the LÖVE project
 M.load = function(tmx_path)
     local dir = love.filesystem.getRealDirectory(tmx_path) or ''
-    local path = dir .. '/' .. tmx_path 
-    local xml, err = XmlParser.parseXmlFile(path)
+    local path = dir .. '/' .. tmx_path
+    local xml, err = xml_parser.parseXmlFile(path)
 
     if err ~= nil then return error('failed to load TMX file: ' .. err) end
 
@@ -232,8 +214,8 @@ M.load = function(tmx_path)
     -- retrieve all tilesets, layers & object groups, which we'll need for drawing
     local tilesets, layers, object_groups = {}, {}, {}
     for _, node in pairs(xml.children) do
-        if node.name == 'tileset' then            
-            table.insert(tilesets, parseTileset(node, getDirectory(path)))
+        if node.name == 'tileset' then
+            table.insert(tilesets, parseTileset(node, utils.getDirectory(tmx_path)))
         elseif node.name == 'layer' then
             table.insert(layers, parseLayer(node))
         elseif node.name == 'objectgroup' then
@@ -301,8 +283,8 @@ M.load = function(tmx_path)
             for _, layer in ipairs(layers) do
                 for _, chunk in ipairs(layer.data.chunks) do
                     drawChunk(chunk, tiles, map.tilewidth, map.tileheight)
-                end        
-            end     
+                end
+            end
         end
     end
 
