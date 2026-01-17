@@ -1,6 +1,6 @@
 local _PATH = (...):match("(.-)[^%.]+$")
 local xml_parser = require(_PATH .. 'xml_parser')
-local utils = require(_PATH .. "util")
+local utils = require(_PATH .. "utils")
 local Animation = require(_PATH .. "animation")
 local Tile = require(_PATH .. "tile")
 
@@ -186,7 +186,7 @@ M.setImageFilter = function(min, mag, anisotropy)
     mag             = mag or min
     anisotropy      = anisotropy or 1
     image_filter    = { min, mag, anisotropy }
-end 
+end
 
 -- load a TMX file based on the relative path inside the LÖVE project
 M.load = function(tmx_path)
