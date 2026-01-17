@@ -6,8 +6,6 @@ local Tile = require(_PATH .. "tile")
 
 local mfloor = math.floor
 
-assert(love ~= nil, "BTL requires LÖVE framework to run")
-
 local M = {}
 
 -- the image filter used for drawing tiles, configured by calling: M.setImageFilter()
