@@ -296,7 +296,7 @@ M.load = function(tmx_path)
 
                 local frame = Animation.getCurrentFrame(animation)
                 local image = tile_images[gid + frame.tile_id]
-                tiles[gid + tile_id] = Tile(image)
+                tiles[gid + tile_id] = Tile.new(image)
             end
         end
     end
